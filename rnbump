@@ -1,0 +1,48 @@
+#!/bin/bash
+git checkout develop
+git stash
+git pull
+
+CURRENT_APP_VERSION=$( grep version package.json | tr -d 'version:", ')
+echo "Current version is $CURRENT_APP_VERSION"
+# (1) prompt user, and read command line argument
+read -p "How big update? [m(A)jor | m(I)nor | (P)atch]: " ANSWER
+
+COMMIT_CHANGES=true;
+
+#ANSWER=$1
+# (2) handle the command line argument we were given
+while true
+do
+  case ${ANSWER} in
+   [aA]* )
+        echo "MAJOR VERSION BUMP"
+        npm version major -m "Bump version to %s" && react-native-version -a
+     break;;
+    [iI]* )
+        echo "MINOR VERSION BUMP"
+        npm version minor -m "Bump version to %s" && react-native-version -a
+    break;;
+    [pP]* )
+        echo "PATCH VERSION BUMP"
+        npm version patch -m "Bump version to %s" && react-native-version -a
+    break;;
+   * )
+    echo "Please specify [m(A)jor | m(I)nor | (P)atch]. Aborting now";
+    COMMIT_CHANGES=false;
+    break ;;
+  esac
+done
+
+if [[ ! -z ${COMMIT_CHANGES} && ${COMMIT_CHANGES} != false ]]; then
+    echo "Let's commit those changes!"
+    APP_VERSION=$( grep version package.json | tr -d 'version:", ' | xargs)
+    echo "New version => $APP_VERSION"
+
+        git checkout -b release/"$APP_VERSION"
+
+        git push -u origin release/"$APP_VERSION" --tags
+
+        git branch -D develop
+        git checkout develop
+fi
